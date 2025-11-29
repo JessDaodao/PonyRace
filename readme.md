@@ -1,10 +1,10 @@
-<center>
+<div align="center">
 
 ![PonyRace Logo](https://pic.eqad.fun/EQAD_Web/pr_FULL15x_T.png)
 
-# PonyRace - 小马种族
+## PonyRace - 小马种族
 
-</center>
+</div>
 
 ## 简介
 
@@ -13,7 +13,7 @@
 分别是飞马、陆马、独角兽、夜琪、海马、麒麟、龙、人类
 每个种族都有单独的技能、数值和饮食习惯
 
-注：这个插件的代码是史山，请捏住鼻子查看源代码
+注：史山，请捏住鼻子查看源代码
 
 ## 其他
 
