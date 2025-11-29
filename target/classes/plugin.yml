@@ -1,0 +1,17 @@
+name: PonyRace
+version: '1.7.2'
+main: fun.eqad.ponyrace.PonyRace
+api-version: '1.20'
+author: EQAD Network
+softDepend: PlaceholderAPI
+libraries:
+  - com.google.code.gson:gson:2.8.9
+commands:
+  ponyrace:
+    description: PonyRace命令
+    usage: /ponyrace
+    aliases: ['pr']
+permissions:
+  ponyrace.admin:
+    description: 允许使用管理员指令
+    default: op
