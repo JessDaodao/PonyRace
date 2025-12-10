@@ -2,13 +2,13 @@ package fun.eqad.ponyrace;
 
 import com.google.gson.*;
 import fun.eqad.ponyrace.api.*;
-import fun.eqad.ponyrace.api.events.*;
 import fun.eqad.ponyrace.bossbar.BossBarManager;
 import fun.eqad.ponyrace.bstats.bStats;
 import fun.eqad.ponyrace.command.CommandManager;
 import fun.eqad.ponyrace.config.ConfigManager;
 import fun.eqad.ponyrace.papi.ExpansionManager;
 import fun.eqad.ponyrace.playerdata.*;
+import fun.eqad.ponyrace.race.RaceSelection;
 import fun.eqad.ponyrace.recipe.RecipeManager;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -20,7 +20,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.*;
@@ -36,6 +35,7 @@ public class PonyRace extends JavaPlugin implements Listener {
     private ConfigManager config;
     private RecipeManager recipe;
     private BossBarManager bossBar;
+    private RaceSelection raceSelection;
     private PonyRaceAPI api;
     private final Gson gson = new GsonBuilder()
             .excludeFieldsWithoutExposeAnnotation()
@@ -45,8 +45,6 @@ public class PonyRace extends JavaPlugin implements Listener {
     private final Map<UUID, Long> lastBoostTime = new HashMap<>();
     private final Map<UUID, Long> dragonFireCooldown = new HashMap<>();
     private final Map<UUID, Long> EatCooldown = new HashMap<>();
-    private final Set<UUID> selectingPlayers = new HashSet<>();
-    private final Map<UUID, BukkitTask> selectionTasks = new HashMap<>();
 
     public ConfigManager getConfigManager() {
         return config;
@@ -60,8 +58,16 @@ public class PonyRace extends JavaPlugin implements Listener {
         return recipe;
     }
 
+    public RaceSelection getRaceSelection() {
+        return raceSelection;
+    }
+
     public PlayerDataManager getPlayerData(UUID uuid) {
         return playerDataMap.get(uuid);
+    }
+
+    public Map<UUID, PlayerDataManager> getPlayerDataMap() {
+        return playerDataMap;
     }
 
     @Override
@@ -78,8 +84,10 @@ public class PonyRace extends JavaPlugin implements Listener {
         this.config = new ConfigManager(this);
         this.recipe = new RecipeManager(this);
         this.bossBar = new BossBarManager();
+        this.raceSelection = new RaceSelection(this);
 
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getPluginManager().registerEvents(raceSelection, this);
 
         new bStats(this, 26045);
 
@@ -190,15 +198,14 @@ public class PonyRace extends JavaPlugin implements Listener {
                 if (config.shouldLoginPluginSupport()) {
                     loginPluginSpecialSelection(player);
                 } else {
-                    openRaceSelection(player);
+                    raceSelection.openRaceSelection(player);
                 }
             }
             if (config.shouldForceSelection() && !config.shouldLoginPluginSupport()) {
-                selectingPlayers.add(player.getUniqueId());
+                raceSelection.getSelectingPlayers().add(player.getUniqueId());
             }
         } else {
             bossBar.initBossBars(player, data.getRace());
-            bossBar.updateBossBars(player, data);
         }
     }
 
@@ -207,8 +214,8 @@ public class PonyRace extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        cancelTask(event.getPlayer().getUniqueId());
-        selectingPlayers.remove(player.getUniqueId());
+        raceSelection.cancelTask(event.getPlayer().getUniqueId());
+        raceSelection.getSelectingPlayers().remove(player.getUniqueId());
         bossBar.removeBossBars(uuid);
         saveData(uuid);
         playerDataMap.remove(uuid);
@@ -217,8 +224,8 @@ public class PonyRace extends JavaPlugin implements Listener {
     private void loginPluginSpecialSelection(Player player) {
         UUID uuid = player.getUniqueId();
 
-        if (selectionTasks.containsKey(uuid)) {
-            selectionTasks.get(uuid).cancel();
+        if (raceSelection.getSelectionTasks().containsKey(uuid)) {
+            raceSelection.getSelectionTasks().get(uuid).cancel();
         }
 
         BukkitTask task = new BukkitRunnable() {
@@ -226,284 +233,17 @@ public class PonyRace extends JavaPlugin implements Listener {
             public void run() {
                 if (!player.isOnline() ||
                         playerDataMap.get(uuid).isHasChosen()) {
-                    cancelTask(uuid);
+                    raceSelection.cancelTask(uuid);
                     return;
                 }
-                openRaceSelection(player);
+                raceSelection.openRaceSelection(player);
             }
         }.runTaskTimer(this, 0, 5);
 
-        selectionTasks.put(uuid, task);
+        raceSelection.getSelectionTasks().put(uuid, task);
     }
 
-    private void cancelTask(UUID uuid) {
-        if (selectionTasks.containsKey(uuid)) {
-            selectionTasks.get(uuid).cancel();
-            selectionTasks.remove(uuid);
-        }
-    }
 
-    public void openRaceSelection(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 45, "选择你的种族 §7>>>");
-
-        ItemStack pegasus = createItem(Material.FEATHER, "§b飞马",
-                Arrays.asList(
-                        "§8--------",
-                        "§7永久速度I效果",
-                        "§7拿着木棍时能飞行",
-                        "§7飞行时拿着木棍右键可以俯冲",
-                        "§7飞行和俯冲有体力限制",
-                        "§7喜欢素食, 讨厌肉食",
-                        "§7可以食用一些原版不能直接食用的植物",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-        ItemStack earthPony = createItem(Material.WHEAT, "§6陆马",
-                Arrays.asList(
-                        "§8--------",
-                        "§724点生命上限",
-                        "§7永久力量I效果",
-                        "§7永久跳跃提升I效果",
-                        "§7永久速度I效果",
-                        "§7在地面上拿着木棍右键可以冲刺",
-                        "§7冲刺有体力限制",
-                        "§7喜欢素食, 讨厌肉食",
-                        "§7可以食用一些原版不能直接食用的植物",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-        ItemStack unicorn = createItem(Material.AMETHYST_SHARD, "§d独角兽",
-                Arrays.asList(
-                        "§8--------",
-                        "§7拿着木棍左键可以发射激光 (可以穿透)",
-                        "§7拿着木棍右键可以传送到你看着的方块上方",
-                        "§7发射激光和传送有魔力限制",
-                        "§7喜欢素食, 讨厌肉食",
-                        "§7可以食用一些原版不能直接食用的植物",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-        ItemStack nightmare = createItem(Material.ENDER_EYE, "§2夜琪",
-                Arrays.asList(
-                        "§8--------",
-                        "§7拿着木棍时能飞行",
-                        "§7飞行时拿着木棍右键可以俯冲",
-                        "§7飞行和俯冲有体力限制",
-                        "§7拥有夜视能力",
-                        "§7白天有虚弱I效果",
-                        "§7晚上有力量II效果",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-        ItemStack seapony = createItem(Material.HEART_OF_THE_SEA, "§3海马",
-                Arrays.asList(
-                        "§8--------",
-                        "§7可以在水下呼吸",
-                        "§7水下游泳速度更快",
-                        "§7在水中拿着木棍右键可以突进",
-                        "§7突进有体力限制",
-                        "§7喜欢素食, 讨厌肉食",
-                        "§7可以食用一些原版不能直接食用的植物",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-        ItemStack kirin = createItem(Material.FIRE_CHARGE, "§e麒麟",
-                Arrays.asList(
-                        "§8--------",
-                        "§730点生命上限",
-                        "§7不怕火",
-                        "§7拿着木棍右键可以发怒",
-                        "§7处于发怒状态时会获得力量II和抗性提升I效果",
-                        "§7发怒后会获得时长为3分钟的虚弱II效果",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-        ItemStack dragon = createItem(Material.LAVA_BUCKET, "§4龙族",
-                Arrays.asList(
-                        "§8--------",
-                        "§726点生命上限",
-                        "§7不怕火",
-                        "§7拿着木棍时能飞行",
-                        "§7拿着木棍左键可以喷火球",
-                        "§7飞行有体力限制",
-                        "§7吃绿宝石/钻石可以恢复生命和饥饿值",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-        ItemStack human = createItem(Material.LEATHER_BOOTS, "§7人类",
-                Arrays.asList(
-                        "§8--------",
-                        "§7无任何附加属性",
-                        "§8--------",
-                        "§a点击选择",
-                        "§8--------"
-                ));
-
-        inv.setItem(10, pegasus);
-        inv.setItem(12, earthPony);
-        inv.setItem(14, unicorn);
-        inv.setItem(16, nightmare);
-        inv.setItem(28, seapony);
-        inv.setItem(30, kirin);
-        inv.setItem(32, dragon);
-        inv.setItem(34, human);
-
-        player.openInventory(inv);
-    }
-
-    private ItemStack createItem(Material material, String name, List<String> lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-
-        meta.setDisplayName(name);
-        meta.setLore(lore);
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-        item.setItemMeta(meta);
-
-        return item;
-    }
-
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals("选择你的种族 §7>>>")) return;
-
-        Player player = (Player) event.getWhoClicked();
-        event.setCancelled(true);
-
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null) return;
-
-        String race = null;
-        switch (clicked.getType()) {
-            case FEATHER: race = "pegasus"; break;
-            case WHEAT: race = "earthpony"; break;
-            case AMETHYST_SHARD: race = "unicorn"; break;
-            case ENDER_EYE: race = "nightmare"; break;
-            case HEART_OF_THE_SEA: race = "seapony"; break;
-            case FIRE_CHARGE: race = "kirin"; break;
-            case LAVA_BUCKET: race = "dragon"; break;
-            case LEATHER_BOOTS: race = "human"; break;
-        }
-
-        if (race != null) {
-            if (player.hasMetadata("using_rebirth_potion")) {
-                player.removeMetadata("using_rebirth_potion", this);
-
-                ItemStack item = player.getInventory().getItemInMainHand();
-                ItemMeta meta = item.getItemMeta();
-                if (item != null && item.getType() == Material.POTION && meta.getCustomModelData() == 389000) {
-                    item.setAmount(item.getAmount() - 1);
-                    player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1.0F, 1.0F);
-                } else {
-                    item = player.getInventory().getItemInOffHand();
-                    if (item != null && item.getType() == Material.POTION && meta.getCustomModelData() == 389000) {
-                        item.setAmount(item.getAmount() - 1);
-                        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1.0F, 1.0F);
-                    }
-                }
-            }
-
-            changeRace(player, race);
-            player.closeInventory();
-        }
-    }
-
-    @EventHandler
-    public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player)) return;
-        Player player = (Player) event.getPlayer();
-
-        if (selectingPlayers.contains(player.getUniqueId())) {
-            Bukkit.getScheduler().runTaskLater(this, () -> {
-                if (selectingPlayers.contains(player.getUniqueId())) {
-                    openRaceSelection(player);
-                }
-            }, 1L);
-        }
-    }
-
-    public void changeRace(Player player, String race) {
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
-        String oldRace = data != null ? data.getRace() : null;
-
-        PlayerRaceChangeEvent event = new PlayerRaceChangeEvent(player, oldRace, race);
-        Bukkit.getPluginManager().callEvent(event);
-
-        if (data == null) {
-            data = new PlayerDataManager(player.getUniqueId());
-            playerDataMap.put(player.getUniqueId(), data);
-        }
-
-        player.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(20);
-        player.removePotionEffect(PotionEffectType.INCREASE_DAMAGE);
-        player.removePotionEffect(PotionEffectType.JUMP);
-        player.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
-        player.removePotionEffect(PotionEffectType.SPEED);
-        player.removePotionEffect(PotionEffectType.NIGHT_VISION);
-        player.removePotionEffect(PotionEffectType.WEAKNESS);
-        player.removePotionEffect(PotionEffectType.DOLPHINS_GRACE);
-        player.removePotionEffect(PotionEffectType.WATER_BREATHING);
-        player.removePotionEffect(PotionEffectType.FIRE_RESISTANCE);
-        raceSelection(player, race);
-
-        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
-
-        player.setAllowFlight(false);
-        player.setFlying(false);
-    }
-
-    private void raceSelection(Player player, String race) {
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
-        data.setRace(race);
-        data.setHasChosen(true);
-        data.setStamina(100);
-        data.setMana(100);
-        data.setEnrageTime(100);
-        data.setEnraged(false);
-        player.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(20);
-        player.setHealth(20);
-
-        cancelTask(player.getUniqueId());
-        selectingPlayers.remove(player.getUniqueId());
-        bossBar.removeBossBars(player.getUniqueId());
-        bossBar.initBossBars(player, race);
-
-        switch (race) {
-            case "pegasus":
-                player.sendMessage(config.getMessagePrefix() + "§b你已转生为飞马!");
-                break;
-            case "earthpony":
-                player.sendMessage(config.getMessagePrefix() + "§6你已转生为陆马!");
-                break;
-            case "unicorn":
-                player.sendMessage(config.getMessagePrefix() + "§d你已转生为独角兽!");
-                break;
-            case "nightmare":
-                player.sendMessage(config.getMessagePrefix() + "§2你已转生为夜琪!");
-                break;
-            case "seapony":
-                player.sendMessage(config.getMessagePrefix() + "§3你已转生为海马!");
-                break;
-            case "kirin":
-                player.sendMessage(config.getMessagePrefix() + "§e你已转生为麒麟!");
-                break;
-            case "dragon":
-                player.sendMessage(config.getMessagePrefix() + "§4你已转生为龙族!");
-                break;
-            case "human":
-                player.sendMessage(config.getMessagePrefix() + "§7你已转生为人类!");
-                break;
-        }
-
-        saveData(player.getUniqueId());
-    }
 
     private boolean cantUseSkill(Player player) {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
@@ -1279,7 +1019,7 @@ public class PonyRace extends JavaPlugin implements Listener {
                 if (event.getAction() == Action.RIGHT_CLICK_AIR ||
                         event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 
-                    openRaceSelection(player);
+                    raceSelection.openRaceSelection(player);
 
                     player.setMetadata("using_rebirth_potion", new FixedMetadataValue(this, true));
                 }
@@ -1404,7 +1144,7 @@ public class PonyRace extends JavaPlugin implements Listener {
         }
     }
 
-    private void saveData(UUID uuid) {
+    public void saveData(UUID uuid) {
         try {
             File dataFile = new File(getDataFolder(), "playerdata/" + uuid + ".json");
             dataFile.getParentFile().mkdirs();
@@ -1420,7 +1160,7 @@ public class PonyRace extends JavaPlugin implements Listener {
         }
     }
 
-    private PlayerDataManager loadData(UUID uuid) {
+    public PlayerDataManager loadData(UUID uuid) {
         File dataFile = new File(getDataFolder(), "playerdata/" + uuid + ".json");
         if (!dataFile.exists()) return null;
 

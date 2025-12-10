@@ -63,7 +63,7 @@ public class PonyRaceAPIImpl implements PonyRaceAPI {
     public boolean setPlayerRace(Player player, String race) {
         if (player == null || race == null) return false;
 
-        plugin.changeRace(player, race.toLowerCase());
+        plugin.getRaceSelection().changeRace(player, race.toLowerCase());
         return true;
     }
 

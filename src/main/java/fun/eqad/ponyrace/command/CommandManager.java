@@ -153,7 +153,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         Player target = targetPlayerArg3(sender, args);
         if (target == null) return;
 
-        plugin.changeRace(target, race);
+        plugin.getRaceSelection().changeRace(target, race);
         sender.sendMessage(plugin.getConfigManager().getMessagePrefix() + "§a成功将 " + target.getName() + " 的种族设置为 " + race);
     }
 
@@ -205,7 +205,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             return;
         }
 
-        plugin.openRaceSelection(target);
+        plugin.getRaceSelection().openRaceSelection(target);
         sender.sendMessage(plugin.getConfigManager().getMessagePrefix() + "§a已为 " + target.getName() + " 打开种族选择菜单");
     }
 
