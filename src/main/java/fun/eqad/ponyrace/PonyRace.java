@@ -33,7 +33,6 @@ import java.io.*;
 import java.util.*;
 
 public class PonyRace extends JavaPlugin implements Listener {
-
     private ConfigManager config;
     private RecipeManager recipe;
     private BossBarManager bossBar;
