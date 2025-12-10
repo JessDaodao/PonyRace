@@ -1,7 +1,7 @@
 package fun.eqad.ponyrace.race;
 
 import fun.eqad.ponyrace.PonyRace;
-import fun.eqad.ponyrace.api.events.PlayerRaceChangeEvent;
+import fun.eqad.ponyrace.api.event.PlayerRaceChangeEvent;
 import fun.eqad.ponyrace.bossbar.BossBarManager;
 import fun.eqad.ponyrace.playerdata.PlayerDataManager;
 import org.bukkit.*;
@@ -15,10 +15,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
-
 import java.util.*;
 
 public class RaceSelection implements Listener {

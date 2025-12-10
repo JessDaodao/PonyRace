@@ -33,7 +33,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 public class bStats {
-
     private final Plugin plugin;
     private final MetricsBase metricsBase;
 

@@ -1,4 +1,4 @@
-package fun.eqad.ponyrace.api.events;
+package fun.eqad.ponyrace.api.event;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
