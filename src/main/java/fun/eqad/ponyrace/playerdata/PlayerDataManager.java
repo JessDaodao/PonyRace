@@ -1,8 +1,12 @@
 package fun.eqad.ponyrace.playerdata;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
-import org.bukkit.Location;
-import java.util.UUID;
+import org.bukkit.*;
+import org.bukkit.plugin.java.JavaPlugin;
+import java.io.*;
+import java.util.*;
 
 public class PlayerDataManager {
     @Expose private final UUID uuid;
@@ -17,6 +21,11 @@ public class PlayerDataManager {
     @Expose private boolean usingAbility = false;
     @Expose private boolean isEnraged = false;
     @Expose private boolean staminaExhausted = false;
+
+    private static final Gson gson = new GsonBuilder()
+            .excludeFieldsWithoutExposeAnnotation()
+            .registerTypeAdapter(Location.class, new LocationAdapter())
+            .create();
 
     public PlayerDataManager(UUID uuid) { this.uuid = uuid; }
 
@@ -57,6 +66,40 @@ public class PlayerDataManager {
             case "dragon": return "龙族";
             case "human": return "人类";
             default: return race;
+        }
+    }
+
+    public static void saveData(UUID uuid, JavaPlugin plugin, Map<UUID, PlayerDataManager> playerDataMap) {
+        try {
+            File dataFile = new File(plugin.getDataFolder(), "playerdata/" + uuid + ".json");
+            dataFile.getParentFile().mkdirs();
+
+            PlayerDataManager data = playerDataMap.get(uuid);
+            if (data != null) {
+                try (Writer writer = new FileWriter(dataFile)) {
+                    gson.toJson(data, writer);
+                }
+            }
+        } catch (IOException e) {
+            plugin.getLogger().severe("保存玩家数据失败: " + e.getMessage());
+        }
+    }
+
+    public static PlayerDataManager loadData(UUID uuid, JavaPlugin plugin) {
+        File dataFile = new File(plugin.getDataFolder(), "playerdata/" + uuid + ".json");
+        if (!dataFile.exists()) return null;
+
+        try (Reader reader = new FileReader(dataFile)) {
+            return gson.fromJson(reader, PlayerDataManager.class);
+        } catch (IOException e) {
+            plugin.getLogger().severe("加载玩家数据失败: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public static void saveAllData(JavaPlugin plugin, Map<UUID, PlayerDataManager> playerDataMap) {
+        for (UUID uuid : playerDataMap.keySet()) {
+            saveData(uuid, plugin, playerDataMap);
         }
     }
 }

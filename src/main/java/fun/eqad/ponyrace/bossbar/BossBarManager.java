@@ -2,9 +2,7 @@ package fun.eqad.ponyrace.bossbar;
 
 import fun.eqad.ponyrace.playerdata.PlayerDataManager;
 import org.bukkit.Bukkit;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
+import org.bukkit.boss.*;
 import org.bukkit.entity.Player;
 import java.util.*;
 

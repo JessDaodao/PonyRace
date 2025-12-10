@@ -12,8 +12,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.*;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
+import org.bukkit.event.*;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.*;
@@ -52,7 +51,7 @@ public class PlayerEvent implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        PlayerDataManager data = plugin.loadData(uuid);
+        PlayerDataManager data = PlayerDataManager.loadData(uuid, plugin);
         if (data == null) {
             data = new PlayerDataManager(uuid);
         }
@@ -83,7 +82,7 @@ public class PlayerEvent implements Listener {
         raceSelection.cancelTask(event.getPlayer().getUniqueId());
         raceSelection.getSelectingPlayers().remove(player.getUniqueId());
         bossBar.removeBossBars(uuid);
-        plugin.saveData(uuid);
+        PlayerDataManager.saveData(uuid, plugin, playerDataMap);
         playerDataMap.remove(uuid);
     }
 
@@ -211,6 +210,11 @@ public class PlayerEvent implements Listener {
 
             player.addPotionEffect(new PotionEffect(
                     PotionEffectType.CONFUSION, 900, 0, false, false, true));
+
+            player.spigot().sendMessage(
+                    ChatMessageType.ACTION_BAR,
+                    new TextComponent("§c你是食草种族, 不可食用肉食")
+            );
         }
     }
 

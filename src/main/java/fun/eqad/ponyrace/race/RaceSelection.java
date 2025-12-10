@@ -7,13 +7,9 @@ import fun.eqad.ponyrace.playerdata.PlayerDataManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.event.*;
+import org.bukkit.event.inventory.*;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
@@ -183,15 +179,23 @@ public class RaceSelection implements Listener {
             if (player.hasMetadata("using_rebirth_potion")) {
                 player.removeMetadata("using_rebirth_potion", plugin);
 
-                ItemStack item = player.getInventory().getItemInMainHand();
-                ItemMeta meta = item.getItemMeta();
-                if (item != null && item.getType() == Material.POTION && meta.getCustomModelData() == 389000) {
-                    item.setAmount(item.getAmount() - 1);
+                ItemStack mainHand = player.getInventory().getItemInMainHand();
+                ItemStack offHand = player.getInventory().getItemInOffHand();
+                ItemMeta mainHandMeta = mainHand.getItemMeta();
+                ItemMeta offHandMeta = offHand.getItemMeta();
+                if ((!mainHand.getType().equals(Material.POTION) || mainHandMeta.getCustomModelData() != 389000) &&
+                        (!offHand.getType().equals(Material.POTION) || offHandMeta.getCustomModelData() != 389000)) {
+                    player.sendMessage(plugin.getConfigManager().getMessagePrefix() + "§c你的手中没有药水");
+                    player.closeInventory();
+                    return;
+                }
+
+                if (mainHand.getType() == Material.POTION && mainHandMeta.getCustomModelData() == 389000) {
+                    mainHand.setAmount(mainHand.getAmount() - 1);
                     player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1.0F, 1.0F);
                 } else {
-                    item = player.getInventory().getItemInOffHand();
-                    if (item != null && item.getType() == Material.POTION && meta.getCustomModelData() == 389000) {
-                        item.setAmount(item.getAmount() - 1);
+                    if (offHand.getType() == Material.POTION && offHandMeta.getCustomModelData() == 389000) {
+                        offHand.setAmount(offHand.getAmount() - 1);
                         player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1.0F, 1.0F);
                     }
                 }
@@ -291,7 +295,7 @@ public class RaceSelection implements Listener {
                 break;
         }
 
-        plugin.saveData(player.getUniqueId());
+        PlayerDataManager.saveData(player.getUniqueId(), plugin, plugin.getPlayerDataMap());
     }
 
     public void cancelTask(UUID uuid) {
