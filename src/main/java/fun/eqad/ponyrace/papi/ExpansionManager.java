@@ -28,7 +28,7 @@ public class ExpansionManager extends PlaceholderExpansion {
             case "race": return data.getRaceName(data.getRace());
             case "stamina": return String.valueOf(data.getStamina());
             case "mana": return String.valueOf(data.getMana());
-            case "enrage_time": return String.valueOf(data.getEnrageTime());
+            case "enrage": return String.valueOf(data.getEnrageTime());
             default: return null;
         }
     }

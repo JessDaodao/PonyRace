@@ -30,7 +30,7 @@
 - `%ponyrace_race%` 玩家种族
 - `%ponyrace_stamina%` 玩家体力值
 - `%ponyrace_mana%` 玩家魔力值
-- `%ponyrace_enrage_time%` 玩家发怒值
+- `%ponyrace_enrage%` 玩家发怒值
 
 ### 配置文件
 
