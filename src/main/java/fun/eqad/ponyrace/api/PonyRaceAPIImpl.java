@@ -20,12 +20,12 @@ public class PonyRaceAPIImpl implements PonyRaceAPI {
 
     @Override
     public PlayerDataManager getPlayerData(UUID uuid) {
-        return plugin.getPlayerData(uuid);
+        return plugin.getPlayerDataMap().get(uuid);
     }
 
     @Override
     public String getPlayerRace(Player player) {
-        PlayerDataManager data = plugin.getPlayerData(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         return data != null ? data.getRace() : null;
     }
 
@@ -49,13 +49,13 @@ public class PonyRaceAPIImpl implements PonyRaceAPI {
 
     @Override
     public boolean hasRace(Player player, String race) {
-        PlayerDataManager data = plugin.getPlayerData(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         return data != null && race.equalsIgnoreCase(data.getRace());
     }
 
     @Override
     public boolean hasChosenRace(Player player) {
-        PlayerDataManager data = plugin.getPlayerData(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         return data != null && data.isHasChosen();
     }
 

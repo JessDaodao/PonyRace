@@ -164,7 +164,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         Player target = targetPlayerArg2(sender, args);
         if (target == null) return;
 
-        PlayerDataManager data = plugin.getPlayerData(target.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(target.getUniqueId());
         if (data == null) {
             sender.sendMessage(plugin.getConfigManager().getMessagePrefix() + "§c该玩家的数据为空");
             return;

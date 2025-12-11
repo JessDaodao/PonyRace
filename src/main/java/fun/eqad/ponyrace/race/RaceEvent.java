@@ -1,10 +1,7 @@
-package fun.eqad.ponyrace.event;
+package fun.eqad.ponyrace.race;
 
 import fun.eqad.ponyrace.PonyRace;
-import fun.eqad.ponyrace.bossbar.BossBarManager;
-import fun.eqad.ponyrace.config.ConfigManager;
 import fun.eqad.ponyrace.playerdata.PlayerDataManager;
-import fun.eqad.ponyrace.race.RaceSelection;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -23,27 +20,14 @@ import org.bukkit.scheduler.*;
 import org.bukkit.util.Vector;
 import java.util.*;
 
-public class PlayerEvent implements Listener {
+public class RaceEvent implements Listener {
     private final PonyRace plugin;
-    private final ConfigManager config;
-    private final BossBarManager bossBar;
-    private final RaceSelection raceSelection;
-    private final Map<UUID, PlayerDataManager> playerDataMap;
-    private final Map<UUID, Long> lastBoostTime;
-    private final Map<UUID, Long> dragonFireCooldown;
-    private final Map<UUID, Long> EatCooldown;
+    private final Map<UUID, Long> lastBoostTime = new HashMap<>();
+    private final Map<UUID, Long> dragonFireCooldown = new HashMap<>();
+    private final Map<UUID, Long> EatCooldown = new HashMap<>();
 
-    public PlayerEvent(PonyRace plugin, ConfigManager config, BossBarManager bossBar, RaceSelection raceSelection,
-                      Map<UUID, PlayerDataManager> playerDataMap, Map<UUID, Long> lastBoostTime,
-                      Map<UUID, Long> dragonFireCooldown, Map<UUID, Long> EatCooldown) {
+    public RaceEvent(PonyRace plugin) {
         this.plugin = plugin;
-        this.config = config;
-        this.bossBar = bossBar;
-        this.raceSelection = raceSelection;
-        this.playerDataMap = playerDataMap;
-        this.lastBoostTime = lastBoostTime;
-        this.dragonFireCooldown = dragonFireCooldown;
-        this.EatCooldown = EatCooldown;
     }
 
     @EventHandler
@@ -56,21 +40,21 @@ public class PlayerEvent implements Listener {
             data = new PlayerDataManager(uuid);
         }
 
-        playerDataMap.put(uuid, data);
+        plugin.getPlayerDataMap().put(uuid, data);
 
         if (!data.isHasChosen()) {
-            if (config.shouldShowSelection()) {
-                if (config.shouldLoginPluginSupport()) {
+            if (plugin.getConfigManager().shouldShowSelection()) {
+                if (plugin.getConfigManager().shouldLoginPluginSupport()) {
                     loginPluginSpecialSelection(player);
                 } else {
-                    raceSelection.openRaceSelection(player);
+                    plugin.getRaceSelection().openRaceSelection(player);
                 }
             }
-            if (config.shouldForceSelection() && !config.shouldLoginPluginSupport()) {
-                raceSelection.getSelectingPlayers().add(player.getUniqueId());
+            if (plugin.getConfigManager().shouldForceSelection() && !plugin.getConfigManager().shouldLoginPluginSupport()) {
+                plugin.getRaceSelection().getSelectingPlayers().add(player.getUniqueId());
             }
         } else {
-            bossBar.initBossBars(player, data.getRace());
+            plugin.getBossBarManager().initBossBars(player, data.getRace());
         }
     }
 
@@ -79,33 +63,33 @@ public class PlayerEvent implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        raceSelection.cancelTask(event.getPlayer().getUniqueId());
-        raceSelection.getSelectingPlayers().remove(player.getUniqueId());
-        bossBar.removeBossBars(uuid);
-        PlayerDataManager.saveData(uuid, plugin, playerDataMap);
-        playerDataMap.remove(uuid);
+        plugin.getRaceSelection().cancelTask(event.getPlayer().getUniqueId());
+        plugin.getRaceSelection().getSelectingPlayers().remove(player.getUniqueId());
+        plugin.getBossBarManager().removeBossBars(uuid);
+        PlayerDataManager.saveData(uuid, plugin, plugin.getPlayerDataMap());
+        plugin.getPlayerDataMap().remove(uuid);
     }
 
     private void loginPluginSpecialSelection(Player player) {
         UUID uuid = player.getUniqueId();
 
-        if (raceSelection.getSelectionTasks().containsKey(uuid)) {
-            raceSelection.getSelectionTasks().get(uuid).cancel();
+        if (plugin.getRaceSelection().getSelectionTasks().containsKey(uuid)) {
+            plugin.getRaceSelection().getSelectionTasks().get(uuid).cancel();
         }
 
         BukkitTask task = new BukkitRunnable() {
             @Override
             public void run() {
                 if (!player.isOnline() ||
-                        playerDataMap.get(uuid).isHasChosen()) {
-                    raceSelection.cancelTask(uuid);
+                        plugin.getPlayerDataMap().get(uuid).isHasChosen()) {
+                    plugin.getRaceSelection().cancelTask(uuid);
                     return;
                 }
-                raceSelection.openRaceSelection(player);
+                plugin.getRaceSelection().openRaceSelection(player);
             }
         }.runTaskTimer(plugin, 0, 5);
 
-        raceSelection.getSelectionTasks().put(uuid, task);
+        plugin.getRaceSelection().getSelectionTasks().put(uuid, task);
     }
 
     private boolean cantUseSkill(Player player) {
@@ -165,7 +149,7 @@ public class PlayerEvent implements Listener {
             return;
         }
 
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null || !Arrays.asList("pegasus", "earthpony", "unicorn", "seapony").contains(data.getRace())) {
             return;
         }
@@ -173,7 +157,7 @@ public class PlayerEvent implements Listener {
         long now = System.currentTimeMillis();
         if (EatCooldown.containsKey(player.getUniqueId())) {
             long elapsed = now - EatCooldown.get(player.getUniqueId());
-            if (elapsed < config.getEatCooldown()) {
+            if (elapsed < plugin.getConfigManager().getEatCooldown()) {
                 return;
             }
         }
@@ -192,7 +176,7 @@ public class PlayerEvent implements Listener {
     public void onFoodConsume(PlayerItemConsumeEvent event) {
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
 
         if (data == null || !Arrays.asList("pegasus", "earthpony", "unicorn", "seapony").contains(data.getRace())) {
             return;
@@ -230,7 +214,7 @@ public class PlayerEvent implements Listener {
     @EventHandler
     public void dragonEat(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null || !"dragon".equals(data.getRace())) return;
 
         ItemStack item = event.getItem();
@@ -243,7 +227,7 @@ public class PlayerEvent implements Listener {
             long now = System.currentTimeMillis();
             if (EatCooldown.containsKey(player.getUniqueId())) {
                 long elapsed = now - EatCooldown.get(player.getUniqueId());
-                if (elapsed < config.getEatCooldown()) {
+                if (elapsed < plugin.getConfigManager().getEatCooldown()) {
                     return;
                 }
             }
@@ -272,10 +256,10 @@ public class PlayerEvent implements Listener {
 
         if (dragonFireCooldown.containsKey(player.getUniqueId())) {
             long elapsed = now - dragonFireCooldown.get(player.getUniqueId());
-            if (elapsed < config.getDragonFireCooldown()) {
+            if (elapsed < plugin.getConfigManager().getDragonFireCooldown()) {
                 player.spigot().sendMessage(
                         ChatMessageType.ACTION_BAR,
-                        new TextComponent("§c技能冷却中, 剩余" + String.format("%.1f秒", (config.getDragonFireCooldown() - elapsed)/1000.0))
+                        new TextComponent("§c技能冷却中, 剩余" + String.format("%.1f秒", (plugin.getConfigManager().getDragonFireCooldown() - elapsed)/1000.0))
                 );
                 return;
             }
@@ -302,7 +286,7 @@ public class PlayerEvent implements Listener {
                 PotionEffectType.FIRE_RESISTANCE, 200, 0, false, false, false));
 
         if (data.isEnraged()) {
-            data.setEnrageTime(data.getEnrageTime() - config.getEnrageConsume());
+            data.setEnrageTime(data.getEnrageTime() - plugin.getConfigManager().getEnrageConsume());
 
             player.addPotionEffect(new PotionEffect(
                     PotionEffectType.INCREASE_DAMAGE, 200, 1, false, false, false));
@@ -343,11 +327,11 @@ public class PlayerEvent implements Listener {
                         PotionEffectType.WEAKNESS, 3600, 0, false, false, false));
             }
 
-            bossBar.updateBossBars(player, data);
+            plugin.getBossBarManager().updateBossBars(player, data);
         } else if (data.getEnrageTime() < 100) {
             data.setEnrageTime(Math.min(100,
-                    data.getEnrageTime() + config.getEnrageRegen()));
-            bossBar.updateBossBars(player, data);
+                    data.getEnrageTime() + plugin.getConfigManager().getEnrageRegen()));
+            plugin.getBossBarManager().updateBossBars(player, data);
         }
     }
 
@@ -356,7 +340,7 @@ public class PlayerEvent implements Listener {
             return;
         }
 
-        if (data.getEnrageTime() < config.getEnrageCooldown()) {
+        if (data.getEnrageTime() < plugin.getConfigManager().getEnrageCooldown()) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
                     new TextComponent("§c冷却中")
@@ -389,8 +373,8 @@ public class PlayerEvent implements Listener {
         }
 
         if (!data.isUsingAbility() && data.getStamina() < 100) {
-            data.setStamina(Math.min(100, data.getStamina() + config.getStaminaRegen()));
-            bossBar.updateBossBars(player, data);
+            data.setStamina(Math.min(100, data.getStamina() + plugin.getConfigManager().getStaminaRegen()));
+            plugin.getBossBarManager().updateBossBars(player, data);
         }
     }
 
@@ -398,7 +382,7 @@ public class PlayerEvent implements Listener {
         long now = System.currentTimeMillis();
         if (lastBoostTime.containsKey(player.getUniqueId())) {
             long elapsed = now - lastBoostTime.get(player.getUniqueId());
-            if (elapsed < config.getBoostCooldown()) {
+            if (elapsed < plugin.getConfigManager().getBoostCooldown()) {
                 player.spigot().sendMessage(
                         ChatMessageType.ACTION_BAR,
                         new TextComponent("§c冷却中")
@@ -407,7 +391,7 @@ public class PlayerEvent implements Listener {
             }
         }
 
-        if (data.getStamina() < config.getStaminaBoostConsume()) {
+        if (data.getStamina() < plugin.getConfigManager().getStaminaBoostConsume()) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
                     new TextComponent("§c体力不足")
@@ -415,7 +399,7 @@ public class PlayerEvent implements Listener {
             return;
         }
 
-        data.setStamina(data.getStamina() - config.getStaminaBoostConsume());
+        data.setStamina(data.getStamina() - plugin.getConfigManager().getStaminaBoostConsume());
         data.setUsingAbility(true);
 
         Vector direction = player.getLocation().getDirection();
@@ -433,7 +417,7 @@ public class PlayerEvent implements Listener {
 
         lastBoostTime.put(player.getUniqueId(), now);
 
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     public void nightmareEffects(Player player, PlayerDataManager data) {
@@ -464,7 +448,7 @@ public class PlayerEvent implements Listener {
 
         if (lastBoostTime.containsKey(player.getUniqueId())) {
             long elapsed = now - lastBoostTime.get(player.getUniqueId());
-            if (elapsed < config.getBoostCooldown()) {
+            if (elapsed < plugin.getConfigManager().getBoostCooldown()) {
                 player.spigot().sendMessage(
                         ChatMessageType.ACTION_BAR,
                         new TextComponent("§c冷却中")
@@ -473,7 +457,7 @@ public class PlayerEvent implements Listener {
             }
         }
 
-        if (data.getStamina() < config.getStaminaBoostConsume()) {
+        if (data.getStamina() < plugin.getConfigManager().getStaminaBoostConsume()) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
                     new TextComponent("§c体力不足")
@@ -481,7 +465,7 @@ public class PlayerEvent implements Listener {
             return;
         }
 
-        data.setStamina(data.getStamina() - config.getStaminaBoostConsume());
+        data.setStamina(data.getStamina() - plugin.getConfigManager().getStaminaBoostConsume());
 
         Vector direction = player.getLocation().getDirection().normalize();
 
@@ -496,7 +480,7 @@ public class PlayerEvent implements Listener {
 
         lastBoostTime.put(player.getUniqueId(), now);
 
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     private void pegasusBoost(Player player, PlayerDataManager data) {
@@ -506,7 +490,7 @@ public class PlayerEvent implements Listener {
 
         if (lastBoostTime.containsKey(player.getUniqueId())) {
             long elapsed = now - lastBoostTime.get(player.getUniqueId());
-            if (elapsed < config.getBoostCooldown()) {
+            if (elapsed < plugin.getConfigManager().getBoostCooldown()) {
                 player.spigot().sendMessage(
                         ChatMessageType.ACTION_BAR,
                         new TextComponent("§c冷却中")
@@ -515,7 +499,7 @@ public class PlayerEvent implements Listener {
             }
         }
 
-        if (data.getStamina() <= config.getStaminaBoostConsume()) {
+        if (data.getStamina() <= plugin.getConfigManager().getStaminaBoostConsume()) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
                     new TextComponent("§c体力不足")
@@ -523,7 +507,7 @@ public class PlayerEvent implements Listener {
             return;
         }
 
-        data.setStamina(data.getStamina() - config.getStaminaBoostConsume());
+        data.setStamina(data.getStamina() - plugin.getConfigManager().getStaminaBoostConsume());
 
         Vector direction = player.getLocation().getDirection().normalize();
 
@@ -538,7 +522,7 @@ public class PlayerEvent implements Listener {
 
         lastBoostTime.put(player.getUniqueId(), now);
 
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     public void pegasusEffects(Player player, PlayerDataManager data) {
@@ -549,7 +533,7 @@ public class PlayerEvent implements Listener {
     }
 
     private void ponyFly(Player player, PlayerDataManager data) {
-        BossBar bar = bossBar.staminaBars.get(player.getUniqueId());
+        BossBar bar = plugin.getBossBarManager().staminaBars.get(player.getUniqueId());
         if (bar == null) return;
 
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
@@ -562,11 +546,11 @@ public class PlayerEvent implements Listener {
         if (player.isDead()) return;
 
         if (!player.isFlying() && player.isOnGround()) {
-            int regen = config.getStaminaRegen();
+            int regen = plugin.getConfigManager().getStaminaRegen();
             if (regen > 0) {
                 data.setStamina(Math.min(100, data.getStamina() + regen));
 
-                if (data.getStamina() >= config.getFlyCooldown() && data.isStaminaExhausted()) {
+                if (data.getStamina() >= plugin.getConfigManager().getFlyCooldown() && data.isStaminaExhausted()) {
                     data.setStaminaExhausted(false);
                 }
             }
@@ -575,7 +559,7 @@ public class PlayerEvent implements Listener {
         boolean canFly = holdingStick && !player.isInWater();
 
         if (data.isStaminaExhausted()) {
-            canFly = canFly && data.getStamina() >= config.getFlyCooldown();
+            canFly = canFly && data.getStamina() >= plugin.getConfigManager().getFlyCooldown();
         }
 
         if (canFly) {
@@ -584,7 +568,7 @@ public class PlayerEvent implements Listener {
             if (player.isFlying()) {
                 int moveCost = flightMoveCost(player, data);
 
-                int totalCost = config.getStaminaConsume() + moveCost;
+                int totalCost = plugin.getConfigManager().getStaminaConsume() + moveCost;
 
                 data.setStamina(Math.max(0, data.getStamina() - totalCost));
 
@@ -606,7 +590,7 @@ public class PlayerEvent implements Listener {
             player.setAllowFlight(false);
         }
 
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     private int flightMoveCost(Player player, PlayerDataManager data) {
@@ -636,15 +620,15 @@ public class PlayerEvent implements Listener {
 
         double speed = distance / seconds;
 
-        int speedThreshold = config.getStaminaMoveThresholdConsume();
+        int speedThreshold = plugin.getConfigManager().getStaminaMoveThresholdConsume();
 
         if (speed < speedThreshold) {
             return 0;
         }
 
-        double extraCost = (speed - speedThreshold) * config.getStaminaMoveConsume();
+        double extraCost = (speed - speedThreshold) * plugin.getConfigManager().getStaminaMoveConsume();
 
-        return (int) Math.min(extraCost, config.getStaminaMoveMaxConsume());
+        return (int) Math.min(extraCost, plugin.getConfigManager().getStaminaMoveMaxConsume());
     }
 
     public void earthPonyEffects(Player player) {
@@ -659,10 +643,10 @@ public class PlayerEvent implements Listener {
         player.addPotionEffect(new PotionEffect(
                 PotionEffectType.SPEED, 200, 0, false, false, false));
 
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data != null && !data.isUsingAbility() && data.getStamina() < 100) {
-            data.setStamina(Math.min(100, data.getStamina() + config.getStaminaRegen()));
-            bossBar.updateBossBars(player, data);
+            data.setStamina(Math.min(100, data.getStamina() + plugin.getConfigManager().getStaminaRegen()));
+            plugin.getBossBarManager().updateBossBars(player, data);
         }
     }
 
@@ -671,7 +655,7 @@ public class PlayerEvent implements Listener {
 
         if (lastBoostTime.containsKey(player.getUniqueId())) {
             long elapsed = now - lastBoostTime.get(player.getUniqueId());
-            if (elapsed < config.getBoostCooldown()) {
+            if (elapsed < plugin.getConfigManager().getBoostCooldown()) {
                 player.spigot().sendMessage(
                         ChatMessageType.ACTION_BAR,
                         new TextComponent("§c冷却中")
@@ -680,7 +664,7 @@ public class PlayerEvent implements Listener {
             }
         }
 
-        if (data.getStamina() < config.getStaminaBoostConsume()) {
+        if (data.getStamina() < plugin.getConfigManager().getStaminaBoostConsume()) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
                     new TextComponent("§c体力不足")
@@ -688,7 +672,7 @@ public class PlayerEvent implements Listener {
             return;
         }
 
-        data.setStamina(data.getStamina() - config.getStaminaBoostConsume());
+        data.setStamina(data.getStamina() - plugin.getConfigManager().getStaminaBoostConsume());
 
         Vector direction = player.getLocation().getDirection().normalize();
         player.setVelocity(direction.multiply(3.0));
@@ -706,21 +690,21 @@ public class PlayerEvent implements Listener {
             }
         }.runTaskLater(plugin, 20);
 
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     public void unicornMana(Player player, PlayerDataManager data) {
-        BossBar bar = bossBar.manaBars.get(player.getUniqueId());
+        BossBar bar = plugin.getBossBarManager().manaBars.get(player.getUniqueId());
         if (bar == null) return;
 
         if (data.getMana() < 100) {
-            data.setMana(data.getMana() + config.getManaRegen());
-            bossBar.updateBossBars(player, data);
+            data.setMana(data.getMana() + plugin.getConfigManager().getManaRegen());
+            plugin.getBossBarManager().updateBossBars(player, data);
         }
     }
 
     private void unicornLaser(Player player, PlayerDataManager data) {
-        if (data.getMana() < config.getManaLeftConsume()) {
+        if (data.getMana() < plugin.getConfigManager().getManaLeftConsume()) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
                     new TextComponent("§c魔力不足")
@@ -731,7 +715,7 @@ public class PlayerEvent implements Listener {
         long now = System.currentTimeMillis();
         if (lastBoostTime.containsKey(player.getUniqueId())) {
             long elapsed = now - lastBoostTime.get(player.getUniqueId());
-            if (elapsed < config.getManaCooldown()) {
+            if (elapsed < plugin.getConfigManager().getManaCooldown()) {
                 player.spigot().sendMessage(
                         ChatMessageType.ACTION_BAR,
                         new TextComponent("§c冷却中")
@@ -740,7 +724,7 @@ public class PlayerEvent implements Listener {
             }
         }
 
-        data.setMana(data.getMana() - config.getManaLeftConsume());
+        data.setMana(data.getMana() - plugin.getConfigManager().getManaLeftConsume());
         lastBoostTime.put(player.getUniqueId(), now);
 
         player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_SHOOT, 1.0f, 1.5f);
@@ -758,7 +742,7 @@ public class PlayerEvent implements Listener {
                     return;
                 }
 
-                for (double distance = 0; distance <= config.getMaxLaserLength(); distance += 1.0) {
+                for (double distance = 0; distance <= plugin.getConfigManager().getMaxLaserLength(); distance += 1.0) {
                     Location current = start.clone().add(direction.clone().multiply(distance));
 
                     player.getWorld().spawnParticle(Particle.REDSTONE, current, 1,
@@ -768,7 +752,7 @@ public class PlayerEvent implements Listener {
                         for (Entity entity : player.getWorld().getNearbyEntities(current, 0.5, 0.5, 0.5)) {
                             if (entity != player && entity instanceof LivingEntity) {
                                 LivingEntity livingEntity = (LivingEntity) entity;
-                                livingEntity.damage(config.getLaserDamage(), player);
+                                livingEntity.damage(plugin.getConfigManager().getLaserDamage(), player);
                                 livingEntity.getWorld().spawnParticle(Particle.CRIT,
                                         livingEntity.getLocation(), 5);
                             }
@@ -778,11 +762,11 @@ public class PlayerEvent implements Listener {
             }
         }.runTaskTimer(plugin, 0, 2);
 
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     private void unicornTeleport(Player player, PlayerDataManager data) {
-        if (data.getMana() < config.getManaRightConsume()) {
+        if (data.getMana() < plugin.getConfigManager().getManaRightConsume()) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
                     new TextComponent("§c魔力不足")
@@ -793,7 +777,7 @@ public class PlayerEvent implements Listener {
         long now = System.currentTimeMillis();
         if (lastBoostTime.containsKey(player.getUniqueId())) {
             long elapsed = now - lastBoostTime.get(player.getUniqueId());
-            if (elapsed < config.getManaCooldown()) {
+            if (elapsed < plugin.getConfigManager().getManaCooldown()) {
                 player.spigot().sendMessage(
                         ChatMessageType.ACTION_BAR,
                         new TextComponent("§c冷却中")
@@ -802,7 +786,7 @@ public class PlayerEvent implements Listener {
             }
         }
 
-        Location targetLoc = getTargetLocation(player, config.getMaxTeleportLength());
+        Location targetLoc = getTargetLocation(player, plugin.getConfigManager().getMaxTeleportLength());
 
         if (targetLoc == null) {
             player.spigot().sendMessage(
@@ -812,7 +796,7 @@ public class PlayerEvent implements Listener {
             return;
         }
 
-        data.setMana(data.getMana() - config.getManaRightConsume());
+        data.setMana(data.getMana() - plugin.getConfigManager().getManaRightConsume());
         lastBoostTime.put(player.getUniqueId(), now);
 
         player.getWorld().spawnParticle(Particle.PORTAL, player.getLocation(), 50, 0.5, 0.5, 0.5, 0.5);
@@ -823,7 +807,7 @@ public class PlayerEvent implements Listener {
         player.getWorld().spawnParticle(Particle.PORTAL, targetLoc, 50, 0.5, 0.5, 0.5, 0.5);
         player.playSound(targetLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 1, 1.5f);
 
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     private Location getTargetLocation(Player player, int maxDistance) {
@@ -863,20 +847,20 @@ public class PlayerEvent implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
 
         data.setStamina(100);
         data.setMana(100);
         data.setEnrageTime(100);
         data.setEnraged(false);
-        bossBar.updateBossBars(player, data);
+        plugin.getBossBarManager().updateBossBars(player, data);
     }
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
-        PlayerDataManager data = playerDataMap.get(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
 
         if (item != null && item.getType() == Material.POTION) {
@@ -887,7 +871,7 @@ public class PlayerEvent implements Listener {
                 if (event.getAction() == Action.RIGHT_CLICK_AIR ||
                         event.getAction() == Action.RIGHT_CLICK_BLOCK) {
 
-                    raceSelection.openRaceSelection(player);
+                    plugin.getRaceSelection().openRaceSelection(player);
 
                     player.setMetadata("using_rebirth_potion", new FixedMetadataValue(plugin, true));
                 }
@@ -911,7 +895,7 @@ public class PlayerEvent implements Listener {
                     if (data.getMana() == 100) return;
 
                     data.setMana(100);
-                    bossBar.updateBossBars(player, data);
+                    plugin.getBossBarManager().updateBossBars(player, data);
                     player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1.0F, 1.0F);
                     item.setAmount(item.getAmount() - 1);
                 }
@@ -935,7 +919,7 @@ public class PlayerEvent implements Listener {
                     if (data.getStamina() == 100) return;
 
                     data.setStamina(100);
-                    bossBar.updateBossBars(player, data);
+                    plugin.getBossBarManager().updateBossBars(player, data);
                     player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1.0F, 1.0F);
                     item.setAmount(item.getAmount() - 1);
                 }

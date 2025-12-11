@@ -221,7 +221,7 @@ public class RaceSelection implements Listener {
     }
 
     public void changeRace(Player player, String race) {
-        PlayerDataManager data = plugin.getPlayerData(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         String oldRace = data != null ? data.getRace() : null;
 
         PlayerRaceChangeEvent event = new PlayerRaceChangeEvent(player, oldRace, race);
@@ -251,7 +251,7 @@ public class RaceSelection implements Listener {
     }
 
     private void raceSelection(Player player, String race) {
-        PlayerDataManager data = plugin.getPlayerData(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         BossBarManager bossBar = plugin.getBossBarManager();
         
         data.setRace(race);

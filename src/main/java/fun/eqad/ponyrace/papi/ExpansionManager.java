@@ -36,7 +36,7 @@ public class ExpansionManager extends PlaceholderExpansion {
     public String onRequest(OfflinePlayer player, String params) {
         if (player == null || !player.isOnline()) return "";
 
-        PlayerDataManager data = plugin.getPlayerData(player.getUniqueId());
+        PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return "";
 
         switch (params.toLowerCase()) {

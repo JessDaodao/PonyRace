@@ -5,11 +5,10 @@ import fun.eqad.ponyrace.bossbar.BossBarManager;
 import fun.eqad.ponyrace.bstats.bStats;
 import fun.eqad.ponyrace.command.CommandManager;
 import fun.eqad.ponyrace.config.ConfigManager;
-import fun.eqad.ponyrace.event.PlayerEvent;
 import fun.eqad.ponyrace.loop.PluginLoop;
 import fun.eqad.ponyrace.papi.ExpansionManager;
 import fun.eqad.ponyrace.playerdata.PlayerDataManager;
-import fun.eqad.ponyrace.race.RaceSelection;
+import fun.eqad.ponyrace.race.*;
 import fun.eqad.ponyrace.recipe.RecipeManager;
 import org.bukkit.*;
 import org.bukkit.boss.BossBar;
@@ -22,13 +21,10 @@ public class PonyRace extends JavaPlugin {
     private RecipeManager recipe;
     private BossBarManager bossBar;
     private RaceSelection raceSelection;
-    private PlayerEvent playerEvent;
+    private RaceEvent raceEvent;
     private PluginLoop pluginLoop;
     private PonyRaceAPI api;
     private final Map<UUID, PlayerDataManager> playerDataMap = new HashMap<>();
-    private final Map<UUID, Long> lastBoostTime = new HashMap<>();
-    private final Map<UUID, Long> dragonFireCooldown = new HashMap<>();
-    private final Map<UUID, Long> EatCooldown = new HashMap<>();
 
     public ConfigManager getConfigManager() {
         return config;
@@ -46,8 +42,8 @@ public class PonyRace extends JavaPlugin {
         return raceSelection;
     }
 
-    public PlayerDataManager getPlayerData(UUID uuid) {
-        return playerDataMap.get(uuid);
+    public RaceEvent getRaceEvent() {
+        return raceEvent;
     }
 
     public Map<UUID, PlayerDataManager> getPlayerDataMap() {
@@ -69,11 +65,10 @@ public class PonyRace extends JavaPlugin {
         this.recipe = new RecipeManager(this);
         this.bossBar = new BossBarManager();
         this.raceSelection = new RaceSelection(this);
-        this.playerEvent = new PlayerEvent(this, config, bossBar, raceSelection, 
-                                          playerDataMap, lastBoostTime, dragonFireCooldown, EatCooldown);
-        this.pluginLoop = new PluginLoop(this, playerEvent, playerDataMap);
+        this.raceEvent = new RaceEvent(this);
+        this.pluginLoop = new PluginLoop(this);
 
-        getServer().getPluginManager().registerEvents(playerEvent, this);
+        getServer().getPluginManager().registerEvents(raceEvent, this);
         getServer().getPluginManager().registerEvents(raceSelection, this);
 
         new bStats(this, 26045);
