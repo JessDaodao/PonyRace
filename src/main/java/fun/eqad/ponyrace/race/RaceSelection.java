@@ -298,11 +298,6 @@ public class RaceSelection implements Listener {
         }
     }
 
-    public Set<UUID> getSelectingPlayers() {
-        return selectingPlayers;
-    }
-
-    public Map<UUID, BukkitTask> getSelectionTasks() {
-        return selectionTasks;
-    }
+    public Set<UUID> getSelectingPlayers() { return selectingPlayers; }
+    public Map<UUID, BukkitTask> getSelectionTasks() { return selectionTasks; }
 }
