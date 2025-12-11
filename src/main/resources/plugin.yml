@@ -1,5 +1,5 @@
 name: PonyRace
-version: '1.7.2'
+version: '1.7.3'
 main: fun.eqad.ponyrace.PonyRace
 api-version: '1.20'
 author: EQAD Network
