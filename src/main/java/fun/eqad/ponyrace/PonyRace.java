@@ -26,29 +26,13 @@ public class PonyRace extends JavaPlugin {
     private PonyRaceAPI api;
     private final Map<UUID, PlayerDataManager> playerDataMap = new HashMap<>();
 
-    public ConfigManager getConfigManager() {
-        return config;
-    }
-
-    public BossBarManager getBossBarManager() {
-        return bossBar;
-    }
-
-    public RecipeManager getRecipeManager() {
-        return recipe;
-    }
-
-    public RaceSelection getRaceSelection() {
-        return raceSelection;
-    }
-
-    public RaceEvent getRaceEvent() {
-        return raceEvent;
-    }
-
-    public Map<UUID, PlayerDataManager> getPlayerDataMap() {
-        return playerDataMap;
-    }
+    public ConfigManager getConfigManager() { return config; }
+    public BossBarManager getBossBarManager() { return bossBar; }
+    public RecipeManager getRecipeManager() { return recipe; }
+    public RaceSelection getRaceSelection() { return raceSelection; }
+    public RaceEvent getRaceEvent() { return raceEvent; }
+    public Map<UUID, PlayerDataManager> getPlayerDataMap() { return playerDataMap; }
+    public PonyRaceAPI getAPI() { return api; }
 
     @Override
     public void onEnable() {
@@ -67,20 +51,15 @@ public class PonyRace extends JavaPlugin {
         this.raceSelection = new RaceSelection(this);
         this.raceEvent = new RaceEvent(this);
         this.pluginLoop = new PluginLoop(this);
-
+        this.api = new PonyRaceAPIImpl(this);
+        new bStats(this, 26045);
         getServer().getPluginManager().registerEvents(raceEvent, this);
         getServer().getPluginManager().registerEvents(raceSelection, this);
-
-        new bStats(this, 26045);
-
-        pluginLoop.startLoops();
-
-        recipe.registerRecipes();
-
-        this.api = new PonyRaceAPIImpl(this);
-
         getCommand("ponyrace").setExecutor(new CommandManager(this));
         getCommand("ponyrace").setTabCompleter(new CommandManager(this));
+
+        pluginLoop.startLoops();
+        recipe.registerRecipes();
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new ExpansionManager(this).register();
@@ -102,9 +81,5 @@ public class PonyRace extends JavaPlugin {
         }
 
         getLogger().info("PonyRace已成功卸载");
-    }
-
-    public PonyRaceAPI getAPI() {
-        return api;
     }
 }

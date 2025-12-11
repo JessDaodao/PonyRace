@@ -12,25 +12,10 @@ public class ExpansionManager extends PlaceholderExpansion {
         this.plugin = plugin;
     }
 
-    @Override
-    public String getIdentifier() {
-        return "ponyrace";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "EQAD Network";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
-    }
+    @Override public String getIdentifier() { return "ponyrace"; }
+    @Override public String getAuthor() { return "EQAD Network"; }
+    @Override public String getVersion() { return plugin.getDescription().getVersion(); }
+    @Override public boolean persist() { return true; }
 
     @Override
     public String onRequest(OfflinePlayer player, String params) {

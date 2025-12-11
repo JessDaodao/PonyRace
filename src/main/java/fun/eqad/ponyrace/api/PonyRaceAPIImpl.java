@@ -1,7 +1,7 @@
 package fun.eqad.ponyrace.api;
 
-import fun.eqad.ponyrace.PonyRace;
 import fun.eqad.ponyrace.playerdata.PlayerDataManager;
+import fun.eqad.ponyrace.PonyRace;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import java.util.UUID;

@@ -1,7 +1,7 @@
 package fun.eqad.ponyrace.race;
 
-import fun.eqad.ponyrace.PonyRace;
 import fun.eqad.ponyrace.playerdata.PlayerDataManager;
+import fun.eqad.ponyrace.PonyRace;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;

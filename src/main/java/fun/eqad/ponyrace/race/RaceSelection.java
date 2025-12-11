@@ -1,8 +1,6 @@
 package fun.eqad.ponyrace.race;
 
 import fun.eqad.ponyrace.PonyRace;
-import fun.eqad.ponyrace.api.event.PlayerRaceChangeEvent;
-import fun.eqad.ponyrace.bossbar.BossBarManager;
 import fun.eqad.ponyrace.playerdata.PlayerDataManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -222,10 +220,6 @@ public class RaceSelection implements Listener {
 
     public void changeRace(Player player, String race) {
         PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
-        String oldRace = data != null ? data.getRace() : null;
-
-        PlayerRaceChangeEvent event = new PlayerRaceChangeEvent(player, oldRace, race);
-        Bukkit.getPluginManager().callEvent(event);
 
         if (data == null) {
             data = new PlayerDataManager(player.getUniqueId());
@@ -252,7 +246,6 @@ public class RaceSelection implements Listener {
 
     private void raceSelection(Player player, String race) {
         PlayerDataManager data = plugin.getPlayerDataMap().get(player.getUniqueId());
-        BossBarManager bossBar = plugin.getBossBarManager();
         
         data.setRace(race);
         data.setHasChosen(true);
@@ -265,8 +258,8 @@ public class RaceSelection implements Listener {
 
         cancelTask(player.getUniqueId());
         selectingPlayers.remove(player.getUniqueId());
-        bossBar.removeBossBars(player.getUniqueId());
-        bossBar.initBossBars(player, race);
+        plugin.getBossBarManager().removeBossBars(player.getUniqueId());
+        plugin.getBossBarManager().initBossBars(player, race);
 
         switch (race) {
             case "pegasus":

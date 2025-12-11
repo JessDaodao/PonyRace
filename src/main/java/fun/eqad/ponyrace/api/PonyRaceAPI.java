@@ -41,9 +41,9 @@ public interface PonyRaceAPI {
     int getPlayerMana(Player player);
 
     /**
-     * 获取玩家的魔力值
+     * 获取玩家的怒气值
      * @param player 玩家
-     * @return 魔力值(0-100)
+     * @return 怒气值(0-100)
      */
     int getPlayerEnrage(Player player);
 
