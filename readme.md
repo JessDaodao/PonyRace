@@ -13,15 +13,18 @@
 注：史山，请捏住鼻子查看源代码
 
 ### 命令
+
 - `/pr set <种族> [玩家]` 设置种族
 - `/pr info [玩家]` 查看种族信息
 - `/pr reload` 重载配置文件
 - `/pr gui [玩家]` 打开种族选择菜单
 
 ### 权限节点
+
 - `ponyrace.admin` 管理员命令
 
 ### PAPI变量
+
 - `%ponyrace_race%` 玩家种族
 - `%ponyrace_stamina%` 玩家体力值
 - `%ponyrace_mana%` 玩家魔力值
