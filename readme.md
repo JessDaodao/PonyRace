@@ -1,18 +1,16 @@
 <div align="center">
 
-![PonyRace Logo](https://pic.eqad.fun/EQAD_Web/pr_FULL15x_T.png)
+<img src="https://pic.eqad.fun/EQAD_Web/pr_FULL15x_T.png" width="auto" height="300" alt="PonyRace">
 
-## PonyRace - 小马种族
+# PonyRace
 
 </div>
 
-## 简介
+### 简介
 
 这个插件可以让玩家在游戏内扮演MLP种族，每个种族都有单独的技能、数值和饮食习惯
 
 注：史山，请捏住鼻子查看源代码
-
-## 其他
 
 ### 命令
 - `/pr set <种族> [玩家]` 设置种族
